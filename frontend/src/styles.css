@@ -1,0 +1,31 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-light text-gray-800;
+}
+
+nav {
+  @apply flex justify-between items-center bg-primary text-white px-6 py-3 shadow-md;
+}
+
+nav a {
+  @apply mx-3 text-white hover:text-accent transition;
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow-md p-5 hover:shadow-lg transition;
+}
+
+.button {
+  @apply bg-primary hover:bg-accent text-white font-semibold px-4 py-2 rounded-lg transition;
+}
+
+.input {
+  @apply border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary;
+}
+
+h2, h3 {
+  @apply font-semibold text-primary;
+}
