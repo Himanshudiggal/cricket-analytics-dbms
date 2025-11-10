@@ -1,8 +1,8 @@
 // ✅ Imports
-import fs from 'fs';
-import path from 'path';
-import mysql from 'mysql2/promise';
-import { fileURLToPath } from 'url';
+import fs from "fs";
+import path from "path";
+import mysql from "mysql2/promise";
+import { fileURLToPath } from "url";
 
 // ✅ Setup __dirname for ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -10,22 +10,23 @@ const __dirname = path.dirname(__filename);
 
 // ✅ MySQL connection
 const pool = await mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Kaddu@123', // change if needed
-  database: 'cricketdb'
+  host: "localhost",
+  user: "root",
+  password: "Kaddu@123", // change if needed
+  database: "cricketdb",
+  connectionLimit: 10,
 });
 
 // ✅ Folder containing JSON
-const folder = path.join(__dirname, '../../database/cricsheet/matches');
+const folder = path.join(__dirname, "../../database/cricsheet/matches");
 if (!fs.existsSync(folder)) {
   console.error(`❌ Folder not found: ${folder}`);
   process.exit(1);
 }
 
-const files = fs.readdirSync(folder).filter(f => f.endsWith('.json'));
+const files = fs.readdirSync(folder).filter((f) => f.endsWith(".json"));
 if (!files.length) {
-  console.error('❌ No JSON files found.');
+  console.error("❌ No JSON files found.");
   process.exit(1);
 }
 
@@ -38,25 +39,25 @@ const playerMatchLinks = [];
 // ✅ Utility: get or insert player ID
 async function getPlayerId(name) {
   if (!name) return null;
-  const [rows] = await pool.query('SELECT id FROM players WHERE name=?', [name]);
+  const [rows] = await pool.query("SELECT id FROM players WHERE name=?", [name]);
   if (rows.length) return rows[0].id;
 
-  const [insert] = await pool.query('INSERT IGNORE INTO players (name) VALUES (?)', [name]);
-  return insert.insertId || (await getPlayerId(name)); // re-fetch after insert
+  const [insert] = await pool.query("INSERT IGNORE INTO players (name) VALUES (?)", [name]);
+  return insert.insertId || (await getPlayerId(name));
 }
 
-// ✅ Start processing
+// ✅ Process all JSON match files
 for (const file of files) {
   try {
-    const data = JSON.parse(fs.readFileSync(path.join(folder, file), 'utf8'));
+    const data = JSON.parse(fs.readFileSync(path.join(folder, file), "utf8"));
     const info = data.info || {};
-    const teams = info.teams || ['Unknown', 'Unknown'];
+    const teams = info.teams || ["Unknown", "Unknown"];
     const date = info.dates?.[0] || null;
-    const venue = info.venue || info.city || 'Unknown';
-    const matchType = info.match_type || 'Unknown';
+    const venue = info.venue || info.city || "Unknown";
+    const matchType = info.match_type || "Unknown";
     const seasonYear = date ? new Date(date).getFullYear() : null;
 
-    // ✅ Insert match
+    // ✅ Insert match record
     const [matchInsert] = await pool.query(
       `INSERT INTO matches (match_date, team1, team2, venue, match_type, season_year)
        VALUES (?, ?, ?, ?, ?, ?)`,
@@ -64,7 +65,7 @@ for (const file of files) {
     );
     const matchId = matchInsert.insertId;
 
-    // ✅ Insert players into players table + player_match_map
+    // ✅ Insert players + link to match
     if (info.players) {
       for (const [team, players] of Object.entries(info.players)) {
         for (const player of players) {
@@ -77,7 +78,7 @@ for (const file of files) {
       }
     }
 
-    // ✅ Process innings + deliveries
+    // ✅ Process innings and deliveries
     let inningNum = 1;
     for (const innings of data.innings || []) {
       const team = innings.team || `Team${inningNum}`;
@@ -89,11 +90,12 @@ for (const file of files) {
           const batter = delivery.batter || delivery.batsman;
           const bowler = delivery.bowler;
           const runs = delivery.runs || {};
-          const isWicket = !!delivery.wicket;
-          const wicketPlayerOut = delivery.wicket?.player_out || null;
-          const dismissalKind = delivery.wicket?.kind || null;
+          const wicket = delivery.wicket || null;
+          const isWicket = wicket ? 1 : 0;
+          const wicketPlayerOut = wicket?.player_out || null;
+          const dismissalKind = wicket?.kind || null;
 
-          // ✅ Track players
+          // ✅ Track players involved
           if (batter) playerSet.add(batter);
           if (bowler) playerSet.add(bowler);
           if (wicketPlayerOut) playerSet.add(wicketPlayerOut);
@@ -116,7 +118,7 @@ for (const file of files) {
               isWicket,
               wicketPlayerOut,
               dismissalKind,
-              team
+              team,
             ]
           );
         }
@@ -125,26 +127,28 @@ for (const file of files) {
     }
 
     matchCount++;
-    console.log(`✅ Imported match ${matchCount}: ${teams.join(' vs ')} (${date})`);
+    console.log(`✅ Imported match ${matchCount}: ${teams.join(" vs ")} (${date})`);
   } catch (err) {
     console.error(`❌ Error processing ${file}:`, err.message);
   }
 }
 
-// ✅ Insert unique players (fallback)
+// ✅ Insert all unique players
 console.log(`\n👤 Found ${playerSet.size} unique players — inserting...`);
 for (const player of playerSet) {
-  await pool.query('INSERT IGNORE INTO players (name) VALUES (?)', [player]);
+  await pool.query("INSERT IGNORE INTO players (name) VALUES (?)", [player]);
 }
 
-// ✅ Insert player ↔ match ↔ team links
+// ✅ Link players ↔ matches
 console.log(`🔗 Linking players to matches...`);
 for (const link of playerMatchLinks) {
   await pool.query(
-    'INSERT INTO player_match_map (player_id, match_id, team_name) VALUES (?, ?, ?)',
+    "INSERT INTO player_match_map (player_id, match_id, team_name) VALUES (?, ?, ?)",
     [link.playerId, link.matchId, link.teamName]
   );
 }
 
 await pool.end();
-console.log(`🎉 Imported ${matchCount} matches, ${playerSet.size} players, and ${playerMatchLinks.length} player-match links into cricketdb!`);
+console.log(
+  `🎉 Imported ${matchCount} matches, ${playerSet.size} players, and ${playerMatchLinks.length} player-match links into cricketdb!`
+);

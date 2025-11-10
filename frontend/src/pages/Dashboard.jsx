@@ -1,48 +1,135 @@
-import React, { useEffect, useState } from 'react';
-import Filters from '../components/Filters.jsx';
-import Charts from '../components/Charts.jsx';
-import client from '../api/client.js';
+import React, { useEffect, useState } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ResponsiveContainer,
+} from "recharts";
+import client from "../api/client";
 
-export default function Dashboard(){
-  const [q, setQ] = useState('');
-  const [season, setSeason] = useState('');
-  const [format, setFormat] = useState('');
-  const [players, setPlayers] = useState([]);
-  const [selected, setSelected] = useState(null);
+export default function Dashboard() {
+  const [summary, setSummary] = useState(null);
+  const [top, setTop] = useState(null);
   const [trend, setTrend] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const t = setTimeout(async () => {
-      const { data } = await client.get('/players', { params: { q } });
-      setPlayers(data);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [q]);
+    const fetchDashboard = async () => {
+      try {
+        const [summaryRes, topRes, trendRes] = await Promise.all([
+          client.get("/dashboard/summary"),
+          client.get("/dashboard/top-performers"),
+          client.get("/dashboard/match-trend"),
+        ]);
+        setSummary(summaryRes.data);
+        setTop(topRes.data);
+        setTrend(trendRes.data);
+      } catch (err) {
+        console.error("Failed to load dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboard();
+  }, []);
 
-  useEffect(() => {
-    (async () => {
-      if(!selected) return;
-      const { data } = await client.get(`/stats/form-trend/${selected.id}`, { params: { n: 5 } });
-      setTrend(data);
-    })();
-  }, [selected]);
+  if (loading) return <p className="p-6 text-gray-600">Loading Dashboard...</p>;
+  if (!summary || !top)
+    return <p className="p-6 text-red-500">Failed to load dashboard data.</p>;
 
   return (
-    <>
-      <Filters q={q} setQ={setQ} season={season} setSeason={setSeason} format={format} setFormat={setFormat} />
-      <div className="grid">
-        <div className="card">
-          <h3>Players</h3>
+    <div className="p-6 space-y-10 bg-gray-50 min-h-screen">
+      {/* Header */}
+      <h2 className="text-3xl font-bold text-gray-800 mb-6">
+        🏏 Cricket Analytics Dashboard
+      </h2>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="bg-blue-100 p-5 rounded-lg shadow hover:shadow-lg transition">
+          <h3 className="text-gray-700 font-semibold">Total Players</h3>
+          <p className="text-3xl font-bold text-blue-700">
+            {summary.total_players}
+          </p>
+        </div>
+
+        <div className="bg-green-100 p-5 rounded-lg shadow hover:shadow-lg transition">
+          <h3 className="text-gray-700 font-semibold">Total Matches</h3>
+          <p className="text-3xl font-bold text-green-700">
+            {summary.total_matches}
+          </p>
+        </div>
+
+        <div className="bg-yellow-100 p-5 rounded-lg shadow hover:shadow-lg transition">
+          <h3 className="text-gray-700 font-semibold">Recent Seasons</h3>
+          <p className="text-xl font-medium text-yellow-800">
+            {summary.recent_seasons.join(", ")}
+          </p>
+        </div>
+      </div>
+
+      {/* Top Performers */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white p-5 rounded-lg shadow">
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">
+            🏆 Top 5 Run Scorers
+          </h3>
           <ul>
-            {players.map(p => (
-              <li key={p.id} style={{padding:'6px 0', cursor:'pointer'}} onClick={()=>setSelected(p)}>
-                {p.full_name} — {p.country}
+            {top.top_batters.map((p, i) => (
+              <li
+                key={i}
+                className="flex justify-between py-2 border-b border-gray-100"
+              >
+                <span>{p.player_name}</span>
+                <span className="font-semibold text-blue-600">{p.runs}</span>
               </li>
             ))}
           </ul>
         </div>
-        <Charts data={trend} title={selected ? `${selected.full_name} — Rolling Avg (Runs)` : 'Select a player'} />
+
+        <div className="bg-white p-5 rounded-lg shadow">
+          <h3 className="text-xl font-semibold text-gray-800 mb-3">
+            🎯 Top 5 Wicket Takers
+          </h3>
+          <ul>
+            {top.top_bowlers.map((p, i) => (
+              <li
+                key={i}
+                className="flex justify-between py-2 border-b border-gray-100"
+              >
+                <span>{p.player_name}</span>
+                <span className="font-semibold text-green-600">
+                  {p.wickets}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
-    </>
+
+      {/* Match Trend Chart */}
+      <div className="bg-white p-6 rounded-lg shadow">
+        <h3 className="text-xl font-semibold text-gray-800 mb-3">
+          📈 Matches Played by Year
+        </h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <LineChart data={trend}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="season_year" />
+            <YAxis />
+            <Tooltip />
+            <Line
+              type="monotone"
+              dataKey="matches"
+              stroke="#2563eb"
+              strokeWidth={2}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
   );
 }
