@@ -3,29 +3,102 @@
 @tailwind utilities;
 
 body {
-  @apply bg-light text-gray-800;
+  @apply bg-light text-gray-900 dark:bg-dark dark:text-gray-100 transition-colors duration-300;
 }
 
 nav {
-  @apply flex justify-between items-center bg-primary text-white px-6 py-3 shadow-md;
+  @apply flex justify-between items-center bg-primary text-white px-6 py-3 shadow-md 
+         dark:bg-gray-900 dark:text-gray-100 transition-colors duration-300;
 }
 
 nav a {
-  @apply mx-3 text-white hover:text-accent transition;
+  @apply mx-3 text-white hover:text-accent dark:hover:text-accent transition-colors duration-200;
 }
 
 .card {
-  @apply bg-white rounded-2xl shadow-md p-5 hover:shadow-lg transition;
+  @apply bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 
+         rounded-2xl shadow-md p-5 hover:shadow-lg transition-all duration-300;
 }
 
 .button {
-  @apply bg-primary hover:bg-accent text-white font-semibold px-4 py-2 rounded-lg transition;
+  @apply bg-primary hover:bg-accent text-white font-semibold px-4 py-2 rounded-lg 
+         transition-colors duration-200 dark:bg-blue-600 dark:hover:bg-blue-500;
 }
 
-.input {
-  @apply border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-primary;
+.input,
+input,
+select,
+textarea {
+  @apply text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 
+         bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 
+         rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 
+         focus:ring-primary dark:focus:ring-blue-500 transition-colors duration-200;
 }
 
-h2, h3 {
-  @apply font-semibold text-primary;
+.stat-card {
+  @apply bg-white dark:bg-gray-800 rounded-xl shadow-md p-4 flex flex-col items-center 
+         justify-center transition-all duration-300 hover:shadow-lg;
+}
+
+.stat-label {
+  @apply text-gray-700 dark:text-gray-300 text-sm uppercase tracking-wide mb-1;
+}
+
+.stat-value {
+  @apply text-gray-900 dark:text-gray-100 font-bold text-3xl leading-tight;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  @apply font-bold text-gray-900 dark:text-gray-100 leading-snug tracking-wide transition-colors duration-300;
+}
+
+label, th, .section-title {
+  @apply font-semibold text-gray-900 dark:text-gray-100;
+}
+
+p, span, li {
+  @apply text-gray-900 dark:text-gray-100;
+}
+
+table {
+  @apply w-full border-collapse text-left bg-white dark:bg-gray-900 
+         text-gray-900 dark:text-gray-100 rounded-lg overflow-hidden shadow-md transition-colors duration-300;
+}
+
+thead th {
+  @apply sticky top-0 z-10 bg-primary text-white dark:bg-gray-800 dark:text-gray-100 uppercase text-sm;
+}
+
+th, td {
+  @apply px-4 py-3 border-b border-gray-200 dark:border-gray-700;
+}
+
+tbody tr:nth-child(odd) {
+  @apply bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100;
+}
+
+tbody tr:nth-child(even) {
+  @apply bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100;
+}
+
+tbody tr:hover {
+  @apply bg-blue-50 dark:bg-blue-800/30 transition-colors duration-200;
+}
+
+.chart-container {
+  @apply bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 transition-all duration-300;
+}
+
+.chart-title {
+  @apply text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3;
+}
+
+
+footer {
+  @apply text-sm text-gray-600 dark:text-gray-400 text-center py-4 border-t border-gray-200 dark:border-gray-700;
+}
+
+
+* {
+  @apply transition-colors duration-200;
 }

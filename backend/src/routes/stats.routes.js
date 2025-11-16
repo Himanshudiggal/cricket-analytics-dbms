@@ -9,7 +9,7 @@ const router = Router();
  * Calls stored procedure sp_player_form_trend(playerId, n)
  * Role-restricted to analyst/coach/manager/admin
  */
-router.get('/form-trend/:playerId', auth(['analyst','coach','manager','admin']), async (req, res) => {
+router.get('/form-trend/:playerId', auth(['analyst', 'coach', 'manager', 'admin']), async (req, res) => {
   try {
     const playerId = Number(req.params.playerId);
     const n = Number(req.query.n || 5);
@@ -25,7 +25,7 @@ router.get('/form-trend/:playerId', auth(['analyst','coach','manager','admin']),
  * GET /api/stats/batting/alltime
  * Returns top batting career stats (runs, average, SR)
  */
-router.get('/batting/alltime', auth(['analyst','coach','manager','admin']), async (req, res) => {
+router.get('/batting/alltime', auth(['analyst', 'coach', 'manager', 'admin']), async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM view_top_scorers LIMIT 100');
     res.json(rows);
@@ -38,7 +38,7 @@ router.get('/batting/alltime', auth(['analyst','coach','manager','admin']), asyn
  * GET /api/stats/bowling/top
  * Returns top wicket takers
  */
-router.get('/bowling/top', auth(['analyst','coach','manager','admin']), async (req, res) => {
+router.get('/bowling/top', auth(['analyst', 'coach', 'manager', 'admin']), async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM view_top_wicket_takers LIMIT 100');
     res.json(rows);
@@ -51,7 +51,7 @@ router.get('/bowling/top', auth(['analyst','coach','manager','admin']), async (r
  * GET /api/stats/batting/yearly/:playerId
  * Returns per-year batting stats for a specific player
  */
-router.get('/batting/yearly/:playerId', auth(['analyst','coach','manager','admin']), async (req, res) => {
+router.get('/batting/yearly/:playerId', auth(['analyst', 'coach', 'manager', 'admin']), async (req, res) => {
   try {
     const { playerId } = req.params;
     const [rows] = await pool.query(
@@ -68,7 +68,7 @@ router.get('/batting/yearly/:playerId', auth(['analyst','coach','manager','admin
  * GET /api/stats/player/:id/career
  * Returns lifetime career stats for one player
  */
-router.get('/player/:id/career', auth(['analyst','coach','manager','admin']), async (req, res) => {
+router.get('/player/:id/career', auth(['analyst', 'coach', 'manager', 'admin']), async (req, res) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
@@ -79,6 +79,30 @@ router.get('/player/:id/career', auth(['analyst','coach','manager','admin']), as
       return res.status(404).json({ message: 'Player not found' });
     res.json(rows[0]);
   } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/**
+ * ✅ NEW: GET /api/stats/matches-by-month
+ * Returns total matches played per month (grouped by year and month)
+ */
+router.get('/matches-by-month', async (req, res) => {
+  try {
+    const [rows] = await pool.query(`
+      SELECT 
+        YEAR(match_date) AS year,
+        MONTH(match_date) AS month_num,
+        MONTHNAME(match_date) AS month,
+        COUNT(*) AS matches_played
+      FROM matches
+      WHERE match_date IS NOT NULL
+      GROUP BY YEAR(match_date), MONTH(match_date), MONTHNAME(match_date)
+      ORDER BY YEAR(match_date), MONTH(match_date);
+    `);
+    res.json(rows);
+  } catch (err) {
+    console.error('Error fetching matches by month:', err);
     res.status(500).json({ message: err.message });
   }
 });

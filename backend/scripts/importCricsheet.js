@@ -90,7 +90,15 @@ for (const file of files) {
           const batter = delivery.batter || delivery.batsman;
           const bowler = delivery.bowler;
           const runs = delivery.runs || {};
-          const wicket = delivery.wicket || null;
+
+          // ✅ FIXED: Proper handling of plural "wickets" key
+          let wicket = null;
+          if (delivery.wickets && Array.isArray(delivery.wickets) && delivery.wickets.length > 0) {
+            wicket = delivery.wickets[0]; // Cricsheet uses array for wickets
+          } else if (delivery.wicket) {
+            wicket = delivery.wicket; // fallback for older format
+          }
+
           const isWicket = wicket ? 1 : 0;
           const wicketPlayerOut = wicket?.player_out || null;
           const dismissalKind = wicket?.kind || null;
